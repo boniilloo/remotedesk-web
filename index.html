@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="es" data-isolated-origin="0" data-site-origin="https://boniilloo.github.io">
+<head>
+<meta charset="utf-8">
+<!-- CSP first. 'wasm-unsafe-eval' compiles WebAssembly; the iroh relays are listed with and
+     without the trailing dot (default relay URLs end in "."); https://dns.iroh.link resolves
+     endpoint addresses. No inline scripts or styles: element.style.x = … (CSSOM) is allowed.
+     frame-ancestors is ignored in <meta>, so app.js refuses to run inside a frame. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self' https://dns.iroh.link https://*.relay.n0.iroh.link wss://*.relay.n0.iroh.link https://*.relay.n0.iroh.link. wss://*.relay.n0.iroh.link.; img-src 'self' blob: data:; style-src 'self'; font-src 'self'; worker-src 'self'; manifest-src 'self'; media-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<meta name="theme-color" content="#0b0d10">
+<meta name="color-scheme" content="dark">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="RemoteDesk">
+<meta name="format-detection" content="telephone=no">
+<title>RemoteDesk</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon-180.png">
+<link rel="stylesheet" href="css/app.css?v=7a6ac4ad45">
+<script type="module" src="js/app.js?v=7a6ac4ad45"></script>
+</head>
+<body data-screen="boot">
+
+<!-- Hidden input that receives the phone's soft keyboard (16px: iOS zooms into smaller inputs). -->
+<input id="kbd" type="text" inputmode="text" aria-label="Teclado del equipo remoto" tabindex="-1">
+<!-- Keyboard/paste target for desktop browsers (keys are forwarded, nothing is typed here). -->
+<textarea id="sink" aria-label="Teclado del equipo remoto" tabindex="-1" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
+
+<div id="boot" class="screen center">
+  <div class="spinner" aria-hidden="true"></div>
+  <p id="bootText" class="muted">Cargando…</p>
+</div>
+
+<!-- 1. No account in this browser yet -->
+<section id="import" class="screen scroll" hidden aria-labelledby="importTitle">
+  <div class="page">
+    <div class="brand"><img src="icons/icon-192.png" alt="" width="56" height="56"><h1 id="importTitle">RemoteDesk</h1></div>
+    <p class="lead">Para usar tus equipos desde este navegador necesitas el <b>enlace secreto</b> de tu cuenta.</p>
+    <ol id="importSteps" class="steps">
+      <li class="step-pc">En tu PC, abre RemoteDesk y ve a <b>Archivo → Acceso desde el navegador</b>.</li>
+      <li class="step-phone">Escanea el código QR con la cámara del móvil: se abrirá esta página con tu cuenta. O copia el enlace y pégalo aquí abajo.</li>
+      <li class="step-desktop">Pulsa <b>Copiar</b> y pega el enlace aquí abajo.</li>
+      <li class="step-standalone">Pega aquí el enlace que copiaste en Safari con <b>«Copiar enlace para la app»</b>.</li>
+    </ol>
+    <form id="importForm" class="card" autocomplete="off" novalidate>
+      <label for="importField">Pega aquí el enlace</label>
+      <input id="importField" type="text" inputmode="url" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="https://…/#c1.…">
+      <p id="importError" class="error" role="alert" hidden></p>
+      <div class="row-btns">
+        <button id="importPaste" type="button" class="btn">Pegar</button>
+        <button id="importSave" type="submit" class="btn primary">Guardar enlace</button>
+      </div>
+    </form>
+    <p class="small keynote"><b>El enlace es tu llave: guárdalo como un secreto.</b> Solo se guarda en este navegador y nunca se envía a ningún servidor, pero con él y tu contraseña se puede entrar en tus equipos: no lo compartas ni lo dejes en chats o correos.</p>
+    <p id="importIos" class="small muted" hidden>En el <span class="ios-device">iPhone</span>, si añades RemoteDesk a la pantalla de inicio, la app te pedirá el enlace una vez (no comparte datos con Safari).</p>
+  </div>
+</section>
+
+<!-- 2. Master password -->
+<section id="login" class="screen scroll" hidden aria-labelledby="loginTitle">
+  <div class="topright"><button id="loginMenu" type="button" class="icon" aria-label="Opciones"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></button></div>
+  <div class="page">
+    <div class="brand"><img src="icons/icon-192.png" alt="" width="56" height="56"><h1 id="loginTitle">RemoteDesk</h1></div>
+    <p id="loginNotice" class="notice" role="status" hidden></p>
+    <form id="loginForm" class="card" autocomplete="on" novalidate>
+      <input type="text" name="username" autocomplete="username" value="RemoteDesk" class="visually-hidden" tabindex="-1" aria-hidden="true" readonly>
+      <label for="password">Contraseña maestra</label>
+      <div class="pw">
+        <input id="password" name="password" type="password" autocomplete="current-password" enterkeyhint="go" autocapitalize="off" autocorrect="off" spellcheck="false" required minlength="4">
+        <button id="pwToggle" type="button" class="icon" aria-label="Mostrar la contraseña" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3" class="hollow"/></svg></button>
+      </div>
+      <label id="rememberRow" class="check"><input id="remember" type="checkbox"> Recordar en este dispositivo</label>
+      <p id="rememberNote" class="small muted" hidden>Aquí no se ofrece «Recordar»: esta dirección de github.io la comparten otras páginas, que podrían leer lo que se guarde.</p>
+      <button id="loginBtn" type="submit" class="btn primary wide">Entrar</button>
+      <div class="status-row"><span id="loginSpinner" class="spinner sm" aria-hidden="true" hidden></span><p id="loginStatus" class="status" role="status" aria-live="polite"></p></div>
+    </form>
+    <div id="iosInstall" class="card small" hidden>
+      <p>Para usarlo a pantalla completa en el <span class="ios-device">iPhone</span>: <b>Compartir → Añadir a pantalla de inicio</b>. La app te pedirá el enlace una vez.</p>
+      <button id="copyLink" type="button" class="btn wide">Copiar enlace para la app</button>
+    </div>
+  </div>
+</section>
+
+<!-- 3. Machines -->
+<section id="machines" class="screen scroll" hidden aria-labelledby="machinesTitle">
+  <header class="appbar">
+    <div class="appbar-title">
+      <h1 id="machinesTitle">Mis equipos</h1>
+      <span id="accountCode" class="muted small"></span>
+    </div>
+    <button id="mRefresh" type="button" class="icon" aria-label="Buscar de nuevo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg></button>
+    <button id="mMenu" type="button" class="icon" aria-label="Opciones"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></button>
+  </header>
+  <div class="list-wrap">
+    <div id="mStatus" class="mstatus" role="status" aria-live="polite">
+      <span id="mStatusText"></span>
+      <div id="mProgress" class="progress" hidden><div id="mProgressBar"></div></div>
+    </div>
+    <div id="mList" class="mlist"></div>
+    <p id="mEmpty" class="empty" hidden>No hay equipos encendidos. Abre RemoteDesk en tu PC y marca <b>Compartir este equipo</b>.</p>
+    <p class="small muted foot">Conectado como <b id="deviceNameLabel"></b>. <button id="mRename" type="button" class="link">Cambiar</button></p>
+  </div>
+</section>
+
+<!-- 4. Session -->
+<section id="session" class="screen" hidden aria-label="Escritorio remoto">
+  <header id="topbar">
+    <span id="dot" class="dot" aria-hidden="true"></span>
+    <span id="title"></span>
+    <span id="viewOnly" class="badge" hidden>Solo ver</span>
+    <div id="tools" role="toolbar" aria-label="Sesión">
+      <select id="selMonitor" class="t-desk" title="Pantalla del equipo remoto" aria-label="Pantalla" hidden></select>
+      <select id="selQuality" class="t-desk" title="Calidad de imagen" aria-label="Calidad">
+        <option value="auto">Calidad auto</option>
+        <option value="low">Calidad baja</option>
+        <option value="medium">Calidad media</option>
+        <option value="high">Calidad alta</option>
+      </select>
+      <select id="selScale" class="t-desk" title="Resolución transmitida (menos = más rápido)" aria-label="Escala">
+        <option value="auto">Escala auto</option>
+        <option value="1">100 %</option>
+        <option value="0.75">75 %</option>
+        <option value="0.5">50 %</option>
+      </select>
+      <button id="tbKbd" type="button" class="tool t-tab">Teclado</button>
+      <button id="tbMode" type="button" class="tool t-tab">Ratón</button>
+      <button id="tbKeys" type="button" class="tool t-tab">Teclas</button>
+      <button id="tbFit" type="button" class="tool t-desk t-tab" title="Ajustar a la ventana o ver a tamaño real (1:1)">1:1</button>
+      <button id="tbFull" type="button" class="tool t-desk" aria-label="Pantalla completa" title="Pantalla completa (donde el navegador lo permite, también llegan al equipo Alt+Tab, Win, Esc…)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg><span class="lbl">Pantalla completa</span></button>
+      <button id="tbRemoteCursor" type="button" class="tool t-desk" aria-pressed="false" aria-label="Cursor remoto" title="Cursor remoto: dibujar el cursor del otro equipo, en su posición real"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3l12 9-5.5 1 3 6-2.4 1.2-3-6L6 18z"/></svg><span class="lbl">Cursor remoto</span></button>
+      <button id="tbLocalCursor" type="button" class="tool t-desk" aria-pressed="true" aria-label="Mi cursor" title="Mi cursor: mostrar el ratón de este equipo encima de la pantalla remota"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="3" width="12" height="18" rx="6"/><path d="M12 7v4"/></svg><span class="lbl">Mi cursor</span></button>
+      <button id="tbCad" type="button" class="tool t-desk" title="Enviar Ctrl+Alt+Supr (Windows no deja simularlo: usa Ctrl+Mayús+Esc para el Administrador de tareas)">Ctrl+Alt+Supr</button>
+    </div>
+    <span id="stats" class="muted"></span>
+    <button id="btnMenu" type="button" class="icon" aria-label="Más opciones"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></button>
+    <button id="btnClose" type="button" class="icon close" aria-label="Desconectar"><span class="close-x" aria-hidden="true">✕</span><span class="close-text">Desconectar</span></button>
+  </header>
+
+  <div id="stagewrap">
+    <main id="stage">
+      <canvas id="fb" width="1" height="1"></canvas>
+      <div id="rcursor" class="hidden" aria-hidden="true">
+        <img id="rcImg" alt="" hidden>
+        <svg id="rcArrow" viewBox="0 0 12 19"><path d="M0.5 0.5v16l4-4 3 6 2.2-1.1-3-5.9h5.8z"/></svg>
+      </div>
+      <div id="fx" aria-hidden="true"></div>
+      <p id="hint" hidden>Desliza aquí para mover el ratón · toca para hacer clic · gira el móvil para verlo más grande</p>
+    </main>
+    <!-- Outside #stage on purpose: the stage turns every press into remote input. -->
+    <div id="pill">
+      <span class="dot" aria-hidden="true"></span>
+      <button id="pillKbd" type="button" class="icon" aria-label="Teclado"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/></svg></button>
+      <button id="pillMenu" type="button" class="icon" aria-label="Más opciones"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></button>
+    </div>
+    <div id="overlay" hidden>
+      <div class="ov-box" role="status" aria-live="polite">
+        <div id="ovSpinner" class="spinner" aria-hidden="true"></div>
+        <h2 id="ovTitle"></h2>
+        <p id="ovText"></p>
+        <div id="ovActions" class="row-btns"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="keysbar" role="toolbar" aria-label="Teclas especiales">
+    <div class="kpage" data-page="0">
+      <button type="button" data-key="Escape">Esc</button>
+      <button type="button" data-key="Tab">Tab</button>
+      <button type="button" data-mod="ctrl">Ctrl</button>
+      <button type="button" data-mod="alt">Alt</button>
+      <button type="button" data-mod="meta">Win</button>
+      <button type="button" data-key="ArrowLeft" data-repeat aria-label="Izquierda">←</button>
+      <button type="button" data-key="ArrowUp" data-repeat aria-label="Arriba">↑</button>
+      <button type="button" data-key="ArrowDown" data-repeat aria-label="Abajo">↓</button>
+      <button type="button" data-key="ArrowRight" data-repeat aria-label="Derecha">→</button>
+      <button type="button" data-nextpage aria-label="Más teclas">⋯</button>
+    </div>
+    <div class="kpage" data-page="1" hidden>
+      <button type="button" data-mod="shift">Mayús</button>
+      <button type="button" data-key="Delete" data-repeat>Supr</button>
+      <button type="button" data-key="Home">Inicio</button>
+      <button type="button" data-key="End">Fin</button>
+      <button type="button" data-key="PageUp" data-repeat>RePág</button>
+      <button type="button" data-key="PageDown" data-repeat>AvPág</button>
+      <button type="button" data-mod="altgr">AltGr</button>
+      <button type="button" data-key="Insert">Insert</button>
+      <button type="button" data-key="PrintScreen">ImpPt</button>
+      <button type="button" data-nextpage aria-label="Más teclas">⋯</button>
+    </div>
+    <div class="kpage" data-page="2" hidden>
+      <button type="button" data-key="F1">F1</button><button type="button" data-key="F2">F2</button><button type="button" data-key="F3">F3</button>
+      <button type="button" data-key="F4">F4</button><button type="button" data-key="F5">F5</button><button type="button" data-key="F6">F6</button>
+      <button type="button" data-key="F7">F7</button><button type="button" data-key="F8">F8</button><button type="button" data-key="F9">F9</button>
+      <button type="button" data-key="F10">F10</button><button type="button" data-key="F11">F11</button><button type="button" data-key="F12">F12</button>
+      <button type="button" data-nextpage aria-label="Más teclas">⋯</button>
+    </div>
+    <div class="kpage" data-page="3" hidden>
+      <button type="button" data-combo="ctrl+c">Copiar</button>
+      <button type="button" data-combo="ctrl+v">Pegar</button>
+      <button type="button" data-combo="ctrl+x">Cortar</button>
+      <button type="button" data-combo="ctrl+z">Deshacer</button>
+      <button type="button" data-combo="ctrl+a">Todo</button>
+      <button type="button" data-combo="alt+Tab">Alt+Tab</button>
+      <button type="button" data-combo="alt+F4">Alt+F4</button>
+      <button type="button" data-combo="meta+d">Win+D</button>
+      <button type="button" data-combo="ctrl+shift+Escape" data-os="windows">Tareas</button>
+      <button type="button" data-combo="ctrl+alt+Delete" data-os="other">Ctrl+Alt+Supr</button>
+      <button type="button" data-nextpage aria-label="Más teclas">⋯</button>
+    </div>
+  </div>
+
+  <footer id="statusbar" class="muted" aria-live="off"><span id="statusText"></span></footer>
+
+  <nav id="bottombar" aria-label="Acciones">
+    <button id="btnKbd" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/></svg><span>Teclado</span></button>
+    <button id="btnMode" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="3" width="12" height="18" rx="6"/><path d="M12 7v4"/></svg><span id="modeLabel">Ratón</span></button>
+    <button id="btnKeys" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10"/></svg><span>Teclas</span></button>
+    <button id="btnZoom" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg><span id="zoomLabel">Ampliar</span></button>
+    <button id="btnMore" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg><span>Más</span></button>
+  </nav>
+</section>
+
+<!-- Session options (bottom sheet) -->
+<div id="sheet" hidden role="dialog" aria-label="Opciones de la sesión">
+  <div class="grab" aria-hidden="true"></div>
+  <h2 id="sheetTitle">Sesión</h2>
+  <div class="row touch-only"><span>Control</span>
+    <div class="seg" id="segMode"><button type="button" data-v="trackpad">Ratón</button><button type="button" data-v="direct">Táctil</button></div></div>
+  <div class="row"><span>Calidad</span>
+    <div class="seg" id="segQuality"><button type="button" data-v="auto">Auto</button><button type="button" data-v="low">Baja</button><button type="button" data-v="medium">Media</button><button type="button" data-v="high">Alta</button></div></div>
+  <div class="row"><span>Escala</span>
+    <div class="seg" id="segScale"><button type="button" data-v="auto">Auto</button><button type="button" data-v="1">100 %</button><button type="button" data-v="0.75">75 %</button><button type="button" data-v="0.5">50 %</button></div></div>
+  <div class="row"><span>Imágenes/s</span>
+    <div class="seg" id="segFps"><button type="button" data-v="auto">Auto</button><button type="button" data-v="10">10</button><button type="button" data-v="15">15</button><button type="button" data-v="25">25</button><button type="button" data-v="30">30</button></div></div>
+  <div class="row" id="rowMonitor" hidden><span>Pantalla</span><div class="seg wrap" id="segMonitor"></div></div>
+  <label class="row switch"><span>Cursor remoto</span><input id="chkRemoteCursor" type="checkbox"></label>
+  <label class="row switch"><span>Teclas especiales siempre visibles</span><input id="chkKeys" type="checkbox"></label>
+  <div class="row"><span>Datos usados</span><span id="dataUsed">0 MB</span></div>
+  <div class="row"><span>Conexión</span><span id="connInfo" class="muted"></span></div>
+  <div class="sheet-btns">
+    <button id="btnSendText" type="button" class="btn wide">Enviar texto…</button>
+    <button id="btnRefreshImg" type="button" class="btn wide">Actualizar imagen</button>
+    <button id="btnHelp" type="button" class="btn wide touch-only">Gestos</button>
+    <button id="btnFull" type="button" class="btn wide">Pantalla completa</button>
+    <button id="btnDisconnect" type="button" class="btn wide danger">Desconectar</button>
+  </div>
+</div>
+
+<div id="toast" hidden role="status" aria-live="polite"></div>
+</body>
+</html>

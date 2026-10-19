@@ -1,0 +1,290 @@
+/* RemoteDesk web client. Dark theme, system font, tap targets >= 44 px, safe areas. */
+:root {
+  --bg: #0b0d10; --panel: #15191f; --panel-2: #1d232b; --line: #2a313b;
+  --text: #e8ecf1; --muted: #9aa5b1; --accent: #4c9aff; --accent-2: #2563eb;
+  --ok: #3fb950; --warn: #d29922; --bad: #f85149;
+  --bar-h: 56px; --top-h: 44px; --keys-h: 44px;
+  --sat: env(safe-area-inset-top, 0px); --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px); --sar: env(safe-area-inset-right, 0px);
+  --vvh: 100%; --vvtop: 0px;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body {
+  margin: 0; height: 100%; background: var(--bg); color: var(--text);
+  font: 15px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  overflow: hidden; overscroll-behavior: none;            /* no pull-to-refresh / bounce */
+  -webkit-text-size-adjust: 100%;
+}
+body { position: fixed; inset: 0; }
+[hidden] { display: none !important; }
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer;
+  -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+button:disabled { opacity: .5; cursor: default; }
+a, .link { color: var(--accent); }
+.link { text-decoration: underline; padding: 0 2px; }
+/* inline link-buttons are still 44 px tall touch targets */
+button.link { display: inline-flex; align-items: center; min-height: 44px; padding: 0 10px; vertical-align: middle; }
+svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+svg circle { fill: currentColor; stroke: none; }
+svg circle.hollow { fill: none; stroke: currentColor; }
+h1 { font-size: 24px; margin: 0; }
+h2 { font-size: 18px; margin: 0 0 8px; }
+.muted { color: var(--muted); }
+.small { font-size: 13px; }
+.error { color: var(--bad); }
+.visually-hidden { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; opacity: 0; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* hidden keyboard targets: on screen (iOS refuses to focus display:none / off-screen fields),
+   invisible, 16px so iOS does not zoom, no caret, no selection handles */
+#kbd, #sink { position: fixed; top: 0; left: 0; width: 2px; height: 2px; opacity: 0; font-size: 16px;
+  border: 0; padding: 0; margin: 0; color: transparent; background: transparent; caret-color: transparent;
+  pointer-events: none; z-index: -1; resize: none; overflow: hidden; }
+
+/* ------------------------------------------------------------------ screens */
+.screen { position: fixed; inset: 0; display: flex; flex-direction: column; }
+.screen.scroll { overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+.screen.center { align-items: center; justify-content: center; gap: 12px; }
+.page { width: 100%; max-width: 440px; margin: 0 auto;
+  padding: calc(32px + var(--sat)) calc(20px + var(--sar)) calc(32px + var(--sab)) calc(20px + var(--sal)); }
+.brand { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+.brand img { border-radius: 12px; }
+.lead { font-size: 17px; }
+.steps { padding-left: 22px; margin: 12px 0 20px; }
+.steps li { margin: 6px 0; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin: 16px 0;
+  display: flex; flex-direction: column; gap: 10px; }
+.card p { margin: 0; }
+label { font-weight: 600; }
+input[type=text], input[type=password], input:not([type]), textarea, select {
+  font: inherit; font-size: 16px; color: var(--text); background: var(--bg); border: 1px solid var(--line);
+  border-radius: 10px; padding: 11px 12px; width: 100%; min-height: 46px; }
+textarea { min-height: 120px; resize: vertical; }
+input:focus, textarea:focus, select:focus { outline: none; border-color: var(--accent); }
+.pw { display: flex; gap: 6px; align-items: center; }
+.pw input { flex: 1; font-size: 18px; }
+label.check { display: flex; align-items: center; gap: 10px; font-weight: 400; min-height: 44px; }
+label.check input { width: 22px; height: 22px; accent-color: var(--accent-2); }
+.btn { min-height: 46px; padding: 0 18px; border-radius: 10px; background: var(--panel-2); border: 1px solid var(--line); font-weight: 600; }
+.btn:hover { border-color: #3a4552; }
+.btn.primary { background: var(--accent-2); border-color: var(--accent-2); color: #fff; }
+.btn.danger { color: var(--bad); }
+.btn.wide { width: 100%; }
+.row-btns { display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+.row-btns .btn { flex: 1 1 auto; }
+.status { min-height: 1.4em; margin: 0; color: var(--muted); }
+.status.error { color: var(--bad); }
+.notice { background: #13243d; border: 1px solid #1f3d66; border-radius: 10px; padding: 10px 12px; margin: 0 0 8px; }
+button.icon { width: 44px; height: 44px; display: grid; place-items: center; border-radius: 10px; flex: none; }
+button.icon:hover { background: var(--panel-2); }
+.topright { position: absolute; top: calc(8px + var(--sat)); right: calc(8px + var(--sar)); }
+.shake { animation: shake .35s; }
+@keyframes shake { 20%, 60% { transform: translateX(-8px); } 40%, 80% { transform: translateX(8px); } }
+.spinner { width: 28px; height: 28px; border-radius: 50%; border: 3px solid var(--line); border-top-color: var(--accent); animation: spin 0.9s linear infinite; flex: none; }
+.spinner.sm { width: 18px; height: 18px; border-width: 2px; }
+.status-row { display: flex; align-items: center; gap: 10px; min-height: 1.4em; }
+.keynote { background: #1f1a0e; border: 1px solid #4d3b12; border-radius: 10px; padding: 10px 12px; color: var(--text); }
+/* import steps: which ones apply here (app.js sets data-mode) */
+#importSteps .step-phone, #importSteps .step-desktop, #importSteps .step-standalone { display: none; }
+#importSteps[data-mode=mobile] .step-phone, #importSteps[data-mode=desktop] .step-desktop { display: list-item; }
+#importSteps[data-mode=standalone] li { display: none; }
+#importSteps[data-mode=standalone] .step-standalone { display: list-item; }
+#importSteps[data-mode=standalone] { list-style: none; padding-left: 0; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ------------------------------------------------------------------ machines */
+.appbar { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; gap: 4px;
+  padding: var(--sat) calc(8px + var(--sar)) 0 calc(16px + var(--sal)); min-height: calc(56px + var(--sat));
+  background: var(--panel); border-bottom: 1px solid var(--line); }
+.appbar-title { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.appbar h1 { font-size: 20px; }
+.list-wrap { width: 100%; max-width: 680px; margin: 0 auto; padding: 12px calc(12px + var(--sar)) calc(24px + var(--sab)) calc(12px + var(--sal)); }
+.mstatus { color: var(--muted); padding: 4px 4px 10px; min-height: 2em; }
+.progress { height: 3px; background: var(--line); border-radius: 2px; margin-top: 6px; overflow: hidden; }
+#mProgressBar { height: 100%; width: 0; background: var(--accent); transition: width .2s; }
+.mlist { display: flex; flex-direction: column; gap: 8px; }
+.machine { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 72px; padding: 12px 14px; text-align: left;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 14px; }
+.machine:hover { border-color: #3a4552; }
+.machine:active { background: var(--panel-2); }
+.mdot { width: 12px; height: 12px; border-radius: 50%; background: var(--muted); flex: none; }
+.machine.online .mdot { background: var(--ok); }
+.machine.busy .mdot { background: var(--warn); }
+.mtext { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.mname { font-weight: 600; font-size: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mdetail { color: var(--muted); font-size: 13px; }
+.mgo { color: var(--accent); font-weight: 600; font-size: 14px; flex: none; }
+/* offline: only the dot and the name are dimmed (the small texts keep their AA contrast) */
+.machine.offline .mdot, .machine.offline .mname { opacity: .6; }
+.machine.offline .mgo, .machine.busy .mgo, .machine.checking .mgo { color: var(--muted); }
+.machine.checking .mdot { background: transparent; border: 2px solid var(--muted); }
+.machine[aria-disabled=true] { cursor: default; }
+.empty { color: var(--muted); text-align: center; padding: 24px 12px; }
+.foot { margin-top: 24px; text-align: center; }
+
+/* ------------------------------------------------------------------ dialogs, toast */
+dialog.dlg { background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 16px;
+  padding: 20px; width: min(440px, calc(100vw - 24px)); max-height: calc(100vh - 48px); overflow: auto; }
+dialog.dlg::backdrop { background: rgba(0, 0, 0, .55); }
+dialog.dlg p { margin: 0 0 12px; }
+dialog.dlg form { display: flex; flex-direction: column; gap: 12px; }
+.dlg-actions { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; margin-top: 12px; }
+.menu-items { display: flex; flex-direction: column; gap: 8px; }
+textarea.sendtext { margin: 8px 0; }
+dl.gestures { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; margin: 8px 0; }
+dl.gestures dt { font-weight: 600; } dl.gestures dd { margin: 0; color: var(--muted); }
+/* full width available on phones (no left:50% shrink-to-fit), centred, never wider than 560 px */
+#toast { position: fixed; z-index: 30; left: calc(12px + var(--sal)); right: calc(12px + var(--sar)); margin-inline: auto;
+  width: fit-content; bottom: calc(16px + var(--sab)); max-width: 560px;
+  display: flex; align-items: center; gap: 12px; padding: 10px 12px 10px 16px; border-radius: 12px;
+  background: #222a35; border: 1px solid var(--line); box-shadow: 0 8px 24px rgba(0, 0, 0, .5); }
+#toast { pointer-events: none; }                    /* never blocks what is under it… */
+.toast-action { pointer-events: auto; }             /* …except its own button */
+.toast-text { flex: 1; }
+.toast-action { color: var(--accent); font-weight: 700; min-height: 44px; padding: 0 8px; white-space: nowrap; }
+/* session: just above the bottom of the remote screen (keys bar, bottom bar or the keyboard
+   below it); --toast-bottom comes from sessionview.js layout() */
+body[data-screen=session] #toast { bottom: var(--toast-bottom, calc(var(--bar-h) + 16px + var(--sab))); }
+
+/* ------------------------------------------------------------------ session */
+#session { left: 0; top: 0; width: 100%; height: var(--vvh); transform: translateY(var(--vvtop)); }
+#topbar { height: calc(var(--top-h) + var(--sat)); padding: var(--sat) calc(6px + var(--sar)) 0 calc(12px + var(--sal));
+  display: flex; align-items: center; gap: 8px; background: var(--panel); border-bottom: 1px solid var(--line); flex: none; min-width: 0; }
+#title { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 0 1 auto; }
+#stats { font-size: 13px; margin-left: auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.badge { font-size: 12px; padding: 2px 8px; border-radius: 10px; background: var(--panel-2); color: var(--warn); white-space: nowrap; }
+.dot { width: 10px; height: 10px; border-radius: 50%; background: var(--muted); flex: none; }
+.dot.ok { background: var(--ok); } .dot.warn { background: var(--warn); } .dot.bad { background: var(--bad); }
+#tools { display: none; align-items: center; gap: 6px; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+#tools::-webkit-scrollbar { display: none; }
+#tools select { width: auto; min-height: 32px; padding: 4px 8px; font-size: 13px; border-radius: 8px; background: var(--panel-2); }
+.tool { min-height: 32px; padding: 0 10px; border-radius: 8px; font-size: 13px; background: var(--panel-2); border: 1px solid var(--line); white-space: nowrap; gap: 6px; flex: none; }
+.tool svg { width: 16px; height: 16px; }
+#selMonitor { max-width: 170px; }
+@media (max-width: 1240px) { .tool .lbl { display: none; } .tool { padding: 0 8px; } }
+/* set by sessionview.js when the labelled buttons do not fit (e.g. with the monitor selector) */
+#tools.compact .tool .lbl { display: none; } #tools.compact .tool { padding: 0 8px; }
+#tools.compact select { padding: 4px 4px; } #tools.compact #selMonitor { max-width: 118px; }
+.tool:hover { border-color: #3a4552; }
+.tool.on, .tool[aria-pressed=true] { background: #1f3d66; border-color: #2d5b99; }
+#btnClose .close-text { display: none; }
+#tools .t-desk, #tools .t-tab { display: none; }
+
+/* #stage (remote input) and, on top of it but outside it, the overlay and the landscape pill */
+#stagewrap { position: relative; flex: 1 1 auto; min-height: 0; overflow: hidden; background: #000;
+  margin: 0 var(--sar) 0 var(--sal); }
+#stage { position: absolute; inset: 0; overflow: hidden; background: #000;
+  touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+#fb { position: absolute; left: 0; top: 0; transform-origin: 0 0; image-rendering: auto; }
+#stage.pixelated #fb { image-rendering: pixelated; }
+#session.noimg #fb { visibility: hidden; }
+#session.lost #fb { filter: grayscale(1) brightness(.55); }
+#rcursor { position: absolute; left: 0; top: 0; pointer-events: none; transform-origin: 0 0; will-change: transform;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, .6)); }
+#rcursor img, #rcursor svg { width: 100%; height: 100%; display: block; }
+#rcursor { max-width: 256px; max-height: 256px; }
+#rcursor svg path { fill: #fff; stroke: #000; stroke-width: 1; }
+#rcursor.ring { border: 2px solid rgba(255, 255, 255, .85); border-radius: 50%; box-shadow: 0 0 0 1px rgba(0, 0, 0, .6); }
+#rcursor.hidden { display: none; }
+#fx { position: absolute; inset: 0; pointer-events: none; }
+.ripple { position: absolute; width: 36px; height: 36px; margin: -18px 0 0 -18px; border-radius: 50%;
+  border: 3px solid rgba(255, 255, 255, .9); animation: rip .35s ease-out forwards; }
+.ripple.right { border-color: #ff4fa0; }
+.ripple.hold { border-color: #4c9aff; animation: hold .5s ease-out forwards; }
+.ripple.drag { border-color: #ffd23f; animation: none; opacity: .9; }
+@keyframes rip { from { transform: scale(.4); opacity: 1; } to { transform: scale(1.4); opacity: 0; } }
+@keyframes hold { from { transform: scale(1.6); opacity: .3; } to { transform: scale(1); opacity: 1; } }
+#hint { position: absolute; left: 50%; bottom: 24px; transform: translateX(-50%); width: min(320px, 86%); margin: 0;
+  text-align: center; color: var(--muted); font-size: 14px; pointer-events: none; }
+
+#overlay { position: absolute; inset: 0; display: grid; place-items: center; padding: 16px; background: rgba(11, 13, 16, .55); z-index: 3; }
+#session.noimg #overlay { background: var(--bg); }
+.ov-box { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 20px; width: min(420px, 100%);
+  display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; box-shadow: 0 12px 40px rgba(0, 0, 0, .5); }
+.ov-box h2 { margin: 4px 0 0; }
+.ov-box p { margin: 0 0 8px; color: var(--muted); }
+.ov-box .row-btns { width: 100%; }
+
+/* landscape phone: floating pill, draggable along the top edge (left set by sessionview.js),
+   fades to 30 % after 3 s untouched */
+#pill { display: none; position: absolute; top: calc(6px + var(--sat)); left: calc(50% - 60px); z-index: 4;
+  background: rgba(21, 25, 31, .72); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  border-radius: 22px; padding: 0 6px 0 12px; align-items: center; gap: 2px; touch-action: none;
+  user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; transition: opacity .4s; }
+#pill.idle { opacity: .3; }
+
+/* --keys-h is the height of the keys themselves: the 1 px top line goes on top of it */
+#keysbar { display: none; flex: none; height: calc(var(--keys-h) + 1px); background: var(--panel-2); border-top: 1px solid var(--line);
+  padding: 0 var(--sar) 0 var(--sal); touch-action: manipulation; user-select: none; -webkit-user-select: none; }
+#session.keys-open #keysbar { display: flex; }
+#session.view-only #keysbar { display: none; }
+/* pages built by sessionview.js _layoutKeys(): every page fits the width, "⋯" fixed at the right */
+#keysbar .kpage { display: flex; flex: 1 1 auto; min-width: 0; height: 100%; overflow: hidden; }
+#keysbar .kmeasure { position: absolute; visibility: hidden; width: max-content; flex: none; }
+#keysbar .kmeasure button { flex: none; }
+#keysbar button { flex: 1 0 auto; min-width: 44px; height: 100%; padding: 0 5px; font-size: 15px; border-right: 1px solid var(--line); }
+#keysbar .kmore { flex: none; min-width: 44px; border-right: 0; border-left: 1px solid var(--line); }
+#keysbar button:active, #keysbar button.pressed { background: #2c3440; }
+/* white on --accent-2: 5.2:1 (on --accent it was 2.85:1) */
+#keysbar button.once { background: var(--accent-2); color: #fff; }
+#keysbar button.locked { background: var(--accent-2); color: #fff; box-shadow: inset 0 -4px 0 #fff; }
+
+#bottombar { flex: none; display: flex; height: calc(var(--bar-h) + var(--sab));
+  padding: 0 var(--sar) var(--sab) var(--sal); background: var(--panel); border-top: 1px solid var(--line); }
+#bottombar button { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  font-size: 11px; color: var(--muted); user-select: none; -webkit-user-select: none; }
+#bottombar button.on { color: var(--accent); }
+#session.kbd-open #bottombar { display: none; }      /* keyboard open: only the keys bar above it */
+#session.view-only #btnKbd, #session.view-only #btnKeys, #session.view-only #pillKbd, #session.view-only #tbKbd, #session.view-only #tbKeys, #session.view-only #tbCad { display: none !important; }
+
+/* tablets: actions in the top bar, no bottom bar */
+#session.ui-tablet #tools { display: flex; }
+#session.ui-tablet #tools .t-tab { display: inline-flex; align-items: center; }
+#session.ui-tablet #bottombar { display: none; }
+#session.ui-tablet { --keys-h: 48px; --top-h: 52px; }
+#session.ui-tablet .tool { min-height: 44px; min-width: 44px; justify-content: center; }
+
+/* desktop browsers: toolbar like the Qt viewer */
+#session.ui-desktop { --top-h: 44px; }
+#session.ui-desktop #tools { display: flex; }
+#session.ui-desktop #tools .t-desk { display: inline-flex; align-items: center; }
+#session.ui-desktop #tools select.t-desk[hidden] { display: none !important; }
+#session.ui-desktop #bottombar { display: none; }
+#session.ui-desktop #btnClose { width: auto; padding: 0 12px; height: 32px; border-radius: 8px; color: var(--bad); border: 1px solid var(--line); background: var(--panel-2); font-size: 13px; }
+#session.ui-desktop #btnClose .close-x { display: none; }
+#session.ui-desktop #btnClose .close-text { display: inline; }
+#session.ui-desktop #stats { display: none; }
+#session.ui-desktop #title { max-width: 22vw; }
+#statusbar { display: none; flex: none; height: 24px; padding: 0 12px; font-size: 12px; align-items: center;
+  background: var(--panel); border-top: 1px solid var(--line); white-space: nowrap; overflow: hidden; }
+#statusText { overflow: hidden; text-overflow: ellipsis; }
+#session.ui-desktop #statusbar { display: flex; }
+body:not(.touch-ui) .touch-only { display: none !important; }
+
+/* phone in landscape: everything for the desktop, chrome collapses into a floating pill */
+@media (orientation: landscape) and (max-height: 500px) {
+  #session.ui-phone #topbar, #session.ui-phone #bottombar { display: none; }
+  #session.ui-phone #pill { display: flex; }
+  #session.ui-phone.kbd-open #pill { display: none; }
+}
+@media (max-width: 420px) {
+  #session.ui-phone #stats { font-size: 12px; }
+}
+
+/* options sheet */
+#sheet { position: fixed; left: 0; right: 0; bottom: 0; max-height: 82%; overflow: auto; z-index: 20;
+  background: var(--panel); border-radius: 16px 16px 0 0; padding: 8px calc(16px + var(--sar)) calc(16px + var(--sab)) calc(16px + var(--sal));
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, .5); max-width: 640px; margin: 0 auto; }
+#sheet .grab { width: 40px; height: 5px; border-radius: 3px; background: var(--line); margin: 4px auto 8px; }
+#sheet h2 { font-size: 17px; margin: 4px 0 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#sheet .row { display: flex; align-items: center; justify-content: space-between; min-height: 48px; gap: 12px; font-weight: 400; }
+#sheet .row > span:first-child { flex: none; }
+#sheet label.row input[type=checkbox] { width: 22px; height: 22px; accent-color: var(--accent-2); }
+.seg { display: flex; background: var(--panel-2); border-radius: 10px; padding: 3px; overflow-x: auto; scrollbar-width: none; }
+.seg.wrap { flex-wrap: wrap; }
+.seg button { padding: 8px 10px; border-radius: 8px; min-height: 44px; min-width: 44px; white-space: nowrap; font-size: 14px; }
+.seg button.on { background: var(--accent-2); color: #fff; }
+.sheet-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+.sheet-btns .danger { grid-column: 1 / -1; }
+body:not(.touch-ui) .sheet-btns #btnFull { grid-column: 1 / -1; }
